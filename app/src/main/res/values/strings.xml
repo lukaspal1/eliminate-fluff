@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Eliminate Fluff</string>
+    <string name="service_label">Eliminate Fluff blocker</string>
+    <string name="service_description">Lets you watch one Instagram Reel or YouTube Short at a time, sends you back when you swipe to the next one, hides the Reels and Shorts tabs, the Explore grid and feed posts from accounts you don\'t follow. It only acts on Instagram and YouTube and sends nothing anywhere.</string>
+    <string name="explore_hidden">Explore is hidden.\nTap the search bar to find people.</string>
+    <string name="post_hidden">Hidden: not from someone you follow</string>
+    <string name="tagline">Watch the Reel your friend sent. Skip the endless scrolling.</string>
+    <string name="status_on">Blocker is ON</string>
+    <string name="status_off">Blocker is OFF</string>
+    <string name="button_enable">Turn on in Accessibility settings</string>
+    <string name="button_manage">Accessibility settings</string>
+    <string name="block_count">Scrolling sessions stopped: %1$d</string>
+    <string name="setup_help">To turn it on: Accessibility → Installed apps (or Downloaded apps) → Eliminate Fluff blocker → On.\n\nIf the switch is greyed out (\"Restricted setting\"), go to Settings → Apps → Eliminate Fluff → ⋮ menu → Allow restricted settings, then try again.</string>
+</resources>
