@@ -9,8 +9,7 @@ import android.view.WindowManager
 import android.widget.TextView
 
 /**
- * @param touchable whether the cover swallows touches (true) or lets them through to the app,
- *   e.g. so the feed can still be scrolled past a hidden post
+ * @param touchable whether the cover swallows touches (true) or lets them through to the app
  * @param transparent an invisible cover: what is under it stays visible but can't be tapped
  */
 data class Cover(

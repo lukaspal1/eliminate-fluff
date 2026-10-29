@@ -5,39 +5,49 @@ import android.content.res.Configuration
 import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.Toast
 
 /**
  * - Lets you watch a single Reel or Short (from your feed, a DM, Explore...) but presses
  *   Back as soon as you swipe to the next one.
  * - Covers the Reels / Shorts tab in the bottom bar so it can't be tapped.
- * - Covers Instagram's Explore grid (searching still works) and home feed posts from
- *   accounts you don't follow.
+ * - Covers Instagram's Explore grid (searching still works).
+ * - Times the apps you've set limits for and sends you home once one runs out (see [Limits]).
  */
 class FluffBlockerService : AccessibilityService() {
 
     private val handler = Handler(Looper.getMainLooper())
     private val refresh = Runnable(::refreshCovers)
     private val covers by lazy { CoverOverlay(this) }
-    private val feedPosts = FeedPostTracker()
 
     private var lastBlockAt = 0L
     /** When the current Reels/Shorts player appeared, or 0 when none is showing. */
     private var playerOpenedAt = 0L
 
+    private val usage by lazy { AppUsage(this) }
+    private val usageTick = Runnable(::onUsageTick)
+    /** The limited app being timed, and when its time was last counted. */
+    private var timedPkg: String? = null
+    private var lastTickAt = 0L
+    private var lastLockOutAt = 0L
+    private val warned = mutableSetOf<String>()
+
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val pkg = event.packageName?.toString() ?: return
         if (pkg == packageName) return
+
+        if (!handler.hasCallbacks(usageTick) && pkg in Limits.load(this).apps) handler.post(usageTick)
 
         val target = TARGETS[pkg]
         if (target == null) {
             // Switched to another app (home screen, notifications...): drop the covers.
             if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
                 playerOpenedAt = 0L
-                feedPosts.reset()
                 covers.clear()
             }
             return
@@ -82,6 +92,49 @@ class FluffBlockerService : AccessibilityService() {
         Log.i(TAG, "Blocked scrolling in ${event.packageName}")
     }
 
+    /**
+     * Runs every second while a limited app is on screen: counts the time spent in it,
+     * warns a minute before a limit, and sends you to the home screen once it's locked.
+     */
+    private fun onUsageTick() {
+        val now = SystemClock.elapsedRealtime()
+        val limits = Limits.load(this)
+        val pkg = rootInActiveWindow?.packageName?.toString()
+        val interactive = getSystemService(PowerManager::class.java).isInteractive
+        if (pkg == null || pkg !in limits.apps || !interactive) {
+            timedPkg = null
+            return
+        }
+
+        if (pkg == timedPkg) usage.add(pkg, (now - lastTickAt).coerceAtMost(MAX_TICK_GAP_MS), limits)
+        timedPkg = pkg
+        lastTickAt = now
+
+        val lockedUntil = usage.lockedUntil(pkg, limits)
+        if (lockedUntil != null) {
+            lockOut(pkg, lockedUntil)
+        } else {
+            val remaining = usage.remainingMs(pkg, limits)
+            if (remaining != null && remaining <= WARNING_MS) {
+                if (warned.add(pkg)) toast(getString(R.string.limit_warning, appLabel(this, pkg)))
+            } else {
+                warned -= pkg
+            }
+        }
+        handler.postDelayed(usageTick, USAGE_TICK_MS)
+    }
+
+    private fun lockOut(pkg: String, until: Long) {
+        performGlobalAction(GLOBAL_ACTION_HOME)
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastLockOutAt < LOCK_OUT_TOAST_GAP_MS) return
+        lastLockOutAt = now
+        toast(getString(R.string.locked_out, appLabel(this, pkg), formatUnlockTime(this, until)))
+        Log.i(TAG, "Locked out of $pkg")
+    }
+
+    private fun toast(text: String) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+
     private fun refreshCovers() {
         val root = rootInActiveWindow
         val pkg = root?.packageName?.toString()
@@ -94,17 +147,8 @@ class FluffBlockerService : AccessibilityService() {
         val list = buildList {
             findTab(root, target)?.let { add(Cover(it, touchable = true, transparent = true)) }
 
-            if (pkg == INSTAGRAM) {
-                if (root.isTabSelected(pkg, "search_tab")) {
-                    exploreGrid(root)?.let { add(Cover(it, touchable = true, getString(R.string.explore_hidden))) }
-                }
-                if (root.isTabSelected(pkg, "feed_tab")) {
-                    feedPosts.hiddenRegions(root).mapTo(this) {
-                        Cover(it, touchable = false, getString(R.string.post_hidden))
-                    }
-                } else {
-                    feedPosts.reset()
-                }
+            if (pkg == INSTAGRAM && root.isTabSelected(pkg, "search_tab")) {
+                exploreGrid(root)?.let { add(Cover(it, touchable = true, getString(R.string.explore_hidden))) }
             }
         }
 
@@ -154,6 +198,7 @@ class FluffBlockerService : AccessibilityService() {
 
     override fun onDestroy() {
         handler.removeCallbacks(refresh)
+        handler.removeCallbacks(usageTick)
         covers.clear()
         super.onDestroy()
     }
@@ -207,6 +252,11 @@ class FluffBlockerService : AccessibilityService() {
         private const val COOLDOWN_MS = 600L
         private const val PLAYER_SETTLE_MS = 800L
         private const val REFRESH_INTERVAL_MS = 50L
+        private const val USAGE_TICK_MS = 1_000L
+        /** Longest gap between ticks that still counts as use, e.g. if the phone was asleep. */
+        private const val MAX_TICK_GAP_MS = 5_000L
+        private const val WARNING_MS = 60_000L
+        private const val LOCK_OUT_TOAST_GAP_MS = 3_000L
         private const val INSTAGRAM = "com.instagram.android"
 
         /**

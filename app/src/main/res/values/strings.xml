@@ -1,14 +1,29 @@
 <resources>
     <string name="app_name">Eliminate Fluff</string>
     <string name="service_label">Eliminate Fluff blocker</string>
-    <string name="service_description">Lets you watch one Instagram Reel or YouTube Short at a time, sends you back when you swipe to the next one, hides the Reels and Shorts tabs, the Explore grid and feed posts from accounts you don\'t follow. It only acts on Instagram and YouTube and sends nothing anywhere.</string>
+    <string name="service_description">Lets you watch one Instagram Reel or YouTube Short at a time, sends you back when you swipe to the next one, hides the Reels and Shorts tabs and the Explore grid. It also times the apps you set limits for and sends you to the home screen when a limit runs out. It sends nothing anywhere.</string>
     <string name="explore_hidden">Explore is hidden.\nTap the search bar to find people.</string>
-    <string name="post_hidden">Hidden: not from someone you follow</string>
     <string name="tagline">Watch the Reel your friend sent. Skip the endless scrolling.</string>
     <string name="status_on">Blocker is ON</string>
     <string name="status_off">Blocker is OFF</string>
     <string name="button_enable">Turn on in Accessibility settings</string>
     <string name="button_manage">Accessibility settings</string>
     <string name="block_count">Scrolling sessions stopped: %1$d</string>
+    <string name="limits_title">Time limits</string>
+    <string name="daily_switch">Daily limit</string>
+    <string name="daily_minutes_label">minutes a day, all limited apps together</string>
+    <string name="usage_total">Total: %1$d min today</string>
+    <string name="session_switch">Limit time in a row</string>
+    <string name="session_minutes_label">minutes in a row, then</string>
+    <string name="cooldown_minutes_label">minutes locked</string>
+    <string name="session_help">Leaving the app for less than the lock time doesn\'t reset the count.</string>
+    <string name="choose_apps">Limited apps: %1$s</string>
+    <string name="choose_apps_none">Choose apps to limit</string>
+    <string name="choose_apps_title">Apps to limit</string>
+    <string name="usage_line">%1$s: %2$d min today</string>
+    <string name="usage_line_locked">%1$s: %2$d min today, locked until %3$s</string>
+    <string name="limit_warning">1 minute left on %1$s</string>
+    <string name="locked_out">%1$s is locked until %2$s</string>
+    <string name="unlock_tomorrow">tomorrow</string>
     <string name="setup_help">To turn it on: Accessibility → Installed apps (or Downloaded apps) → Eliminate Fluff blocker → On.\n\nIf the switch is greyed out (\"Restricted setting\"), go to Settings → Apps → Eliminate Fluff → ⋮ menu → Allow restricted settings, then try again.</string>
 </resources>
